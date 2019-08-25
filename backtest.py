@@ -85,6 +85,7 @@ class Backtest:
         """
 
         self.events = queue.Queue()
+        self.events_priority_2 = queue.Queue()
 
         self.signals = 0
         self.orders = 0
@@ -117,34 +118,63 @@ class Backtest:
             else:
                 break
 
-            # handle events in que
-            while True:
+            self.handle_events()
+            self.handle_events_priority_2
+            self.handle_events()
 
-                # get event from queue
-                try:
-                    event = self.events.get(False)
-                except queue.Empty:
-                    break
-                else:
+    def handle_events(self):
+        # handle events in que
+        while True:
 
-                    if event is not None:
-                        # switch on event type
-                        if event.type == "MARKET":
-                            # Handle processing of new market data
-                            for s in self.stratergys:
-                                s.calculate_signal()
-                            self.portfolio.update()
-                        elif event.type == "SIGNAL":
-                            self.signals += 1
-                            self.portfolio.handle_signal(event)
+            # get event from queue
+            try:
+                event = self.events.get(False)
+            except queue.Empty:
+                break
+            else:
 
-                        elif event.type == "ORDER":
-                            self.orders += 1
-                            self.execution_handler.execute_order(event)
-                        # print("signal : ", signal)
-                        elif event.type == "FILL":
-                            self.fills += 1
-                            self.portfolio.process_fill(event)
+                if event is not None:
+                    # switch on event type
+                    if event.type == "MARKET":
+                        # Handle processing of new market data
+                        for s in self.stratergys:
+                            s.calculate_signal()
+                        self.portfolio.update()
+                    elif event.type == "SIGNAL":
+                        self.signals += 1
+                        self.portfolio.handle_signal(event)
+
+                    elif event.type == "ORDER":
+                        self.orders += 1
+                        self.execution_handler.execute_order(event)
+                    # print("signal : ", signal)
+                    elif event.type == "FILL":
+                        self.fills += 1
+                        self.portfolio.process_fill(event)
+
+    def handle_events_priority_2(self):
+        # handle events in priority 2 que
+        while True:
+
+            # get event from queue
+            try:
+                event = self.events_priority_2.get(False)
+            except queue.Empty:
+                break
+            else:
+
+                if event is not None:
+                    if event.type == "SIGNAL":
+                        self.signals += 1
+                        self.portfolio.handle_signal(event)
+
+                    elif event.type == "ORDER":
+                        self.orders += 1
+                        self.execution_handler.execute_order(event)
+                    # print("signal : ", signal)
+                    elif event.type == "FILL":
+                        self.fills += 1
+                        self.portfolio.process_fill(event)
 
     def _output_performance(self):
         print("Signals : {}".format(self.signals))

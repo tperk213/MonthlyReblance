@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from event import OrderEvent
 import queue
+import math
 
 """
     Ordering issue
@@ -76,10 +77,6 @@ class Portfolio:
                         the starting capital of the portfolio           
         """
         self.events = events
-        ###################################################
-        self.orders_waiting_for_fill = queue.Queue
-        self.after_fill_signals = queue.Queue
-        ###################################################
         self.dataHandler = dataHandler
         self.symbol_list = dataHandler.symbol_list
         self.starting_capital = starting_capital
@@ -224,43 +221,20 @@ class Portfolio:
             self.holdings.append(temp_holdings)
 
     def handle_signal(self, event):
-        """
-            event is a signal event
-                datetime: 
-                    timestamp of when signal was generated
-                signal_type:
-                    "BUY", "SELL", "SHORT", "BUY_WAIT_FOR_FILL" or "EXIT"
-                symbol:
-                    representation of company eg
-                    "APPL"
-                strength:
-                    adjustment factor
-            return order dict of
-                quantity
-                signal
-        """
-        mkt_quantity = 100
-
-        cur_quantity = self.current_positions[event.symbol]
 
         if event.signal_type == "BUY":
-            order = OrderEvent(
-                symbol=event.symbol, quantity=mkt_quantity, direction="BUY"
+            desired_cash_value = (
+                self.balance_ratio[event.symbol] * self.current_holdings[-1]["total"]
             )
-            self.events.put(order)
-        elif event.signal_type == "SELL":
-            order = OrderEvent(
-                symbol=event.symbol, quantity=cur_quantity, direction="SELL"
+            quantity = math.floor(
+                desired_cash_value
+                / self.dataHandler.get_latest_bar_value(event.symbol, "adj_close")
             )
+            order = OrderEvent(symbol=event.symbol, quantity=quantity, direction="BUY")
             self.events.put(order)
         elif event.signal_type == "EXIT":
-            order = OrderEvent(
-                symbol=event.symbol, quantity=cur_quantity, direction="SELL"
-            )
-        elif event.signal_type == "SHORT":
-            order = OrderEvent(
-                symbol=event.symbol, quantity=mkt_quantity, direction="SELL"
-            )
+            quantity = self.current_positions[-1][event.symbol]
+            order = OrderEvent(symbol=event.symbol, quantity=quantity, direction="SELL")
 
     def update_positions_from_fill(self, fill_event):
         directions = {"BUY": 1, "SELL": -1}

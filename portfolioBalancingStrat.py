@@ -52,7 +52,7 @@ def save_data_from_web():
 
 
 class end_of_month_rebalance_stratergy(Stratergy):
-    def __init__(self, symbol_list, data, events):
+    def __init__(self, symbol_list, data, events, events_priotity_2):
         """
             Params:
                 symbol: list of string symbols that are of interest
@@ -66,6 +66,7 @@ class end_of_month_rebalance_stratergy(Stratergy):
         self.symbol_list = symbol_list
         self.data = data
         self.events = events
+        self.events_priotity_2 = events_priotity_2
         self.previous_date = data.start_date
         self.tickers_invested = self._create_invested_list(symbol_list)
 
@@ -94,8 +95,8 @@ class end_of_month_rebalance_stratergy(Stratergy):
                     Check to see if the adj_close isn't nan
                 """
                 if not numpy.isnan(self.data.get_bar_value(symbol, "adj_close")):
-                    signal = SignalEvent(symbol, bar_date, "BUY", "BALANCE")
-                    self.events.put(signal)
+                    signal = SignalEvent(symbol, bar_date, "BUY", 1)
+                    self.events_priotity_2.put(signal)
 
 
 if __name__ == "__main__":
